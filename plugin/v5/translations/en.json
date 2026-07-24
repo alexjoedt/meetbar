@@ -1,0 +1,52 @@
+{
+  "title": "Meetbar",
+  "settings": {
+    "notify_path": {
+      "label": "Notification path",
+      "description": "Where meeting reminders are shown",
+      "options": {
+        "noctalia": "Noctalia only",
+        "daemon": "Desktop (daemon) only",
+        "both": "Noctalia and desktop"
+      }
+    },
+    "poll_seconds": {
+      "label": "Poll interval (seconds)",
+      "description": "How often the plugin queries the meetbar daemon"
+    },
+    "cli_path": {
+      "label": "CLI path",
+      "description": "Path to the meetbarctl binary"
+    },
+    "horizon_hours": {
+      "label": "Horizon (hours)",
+      "description": "How far ahead to load meetings"
+    },
+    "show_idle": {
+      "label": "Show when free",
+      "description": "Show idle text in the bar when there is no upcoming meeting"
+    },
+    "idle_text": {
+      "label": "Idle text",
+      "description": "Bar text when no meeting is upcoming"
+    }
+  },
+  "ui": {
+    "disconnected": "Not connected",
+    "connect": "Connect Google",
+    "disconnect": "Disconnect",
+    "offline": "Daemon offline",
+    "no_meetings": "No upcoming meetings",
+    "join": "Join",
+    "refresh": "Refresh",
+    "starting": "starting now",
+    "in_minutes": "in {n}m"
+  },
+  "notify": {
+    "meeting": "Meeting",
+    "starting": "Starting now",
+    "in_one": "Starts in 1 minute",
+    "in_n": "Starts in {n} minutes",
+    "join": "Join meeting"
+  }
+}

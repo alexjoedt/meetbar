@@ -1,0 +1,8 @@
+/bin/
+/dist/
+*.exe
+credentials.json
+token.json
+.idea/
+.vscode/
+*.swp

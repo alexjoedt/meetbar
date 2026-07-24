@@ -1,0 +1,80 @@
+# Meetbar — upcoming Google Calendar meetings in Noctalia
+
+id = "alex/meetbar"
+name = "Meetbar"
+version = "0.1.0"
+plugin_api = 3
+author = "alex"
+license = "MIT"
+dependencies = ["meetbarctl"]
+tags = ["calendar", "meetings", "productivity"]
+icon = "calendar"
+description = "Show upcoming Google Calendar meetings and notify before they start."
+
+[[setting]]
+key = "notify_path"
+type = "select"
+label_key = "settings.notify_path.label"
+description_key = "settings.notify_path.description"
+default = "noctalia"
+options = [
+  { value = "noctalia", label_key = "settings.notify_path.options.noctalia" },
+  { value = "daemon", label_key = "settings.notify_path.options.daemon" },
+  { value = "both", label_key = "settings.notify_path.options.both" },
+]
+
+[[setting]]
+key = "poll_seconds"
+type = "int"
+label_key = "settings.poll_seconds.label"
+description_key = "settings.poll_seconds.description"
+default = 30
+min = 5
+max = 600
+
+[[setting]]
+key = "cli_path"
+type = "string"
+label_key = "settings.cli_path.label"
+description_key = "settings.cli_path.description"
+default = "meetbarctl"
+
+[[setting]]
+key = "horizon_hours"
+type = "int"
+label_key = "settings.horizon_hours.label"
+description_key = "settings.horizon_hours.description"
+default = 12
+min = 1
+max = 168
+
+[[service]]
+id = "service"
+entry = "service.luau"
+
+[[widget]]
+id = "bar"
+entry = "widget.luau"
+
+  [[widget.setting]]
+  key = "show_idle"
+  type = "bool"
+  label_key = "settings.show_idle.label"
+  description_key = "settings.show_idle.description"
+  default = true
+
+  [[widget.setting]]
+  key = "idle_text"
+  type = "string"
+  label_key = "settings.idle_text.label"
+  description_key = "settings.idle_text.description"
+  default = "No meetings"
+
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+width = 360
+height = 420
+placement = "attached"
+position = "auto"
+open_near_click = true

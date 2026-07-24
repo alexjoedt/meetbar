@@ -1,0 +1,14 @@
+[Unit]
+Description=Meetbar daemon (Google Calendar)
+After=default.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/meetbard
+Restart=on-failure
+RestartSec=3
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin
+
+[Install]
+WantedBy=default.target

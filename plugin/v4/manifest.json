@@ -1,0 +1,35 @@
+{
+  "id": "meetbar",
+  "name": "Meetbar",
+  "version": "0.1.0",
+  "minNoctaliaVersion": "3.6.0",
+  "author": "alex",
+  "license": "MIT",
+  "repository": "https://github.com/alexjoedt/meetbar",
+  "description": "Show upcoming Google Calendar meetings and notify before they start.",
+  "tags": [
+    "Bar",
+    "Calendar",
+    "Meetings",
+    "Productivity"
+  ],
+  "entryPoints": {
+    "main": "Main.qml",
+    "barWidget": "BarWidget.qml",
+    "panel": "Panel.qml",
+    "settings": "Settings.qml"
+  },
+  "dependencies": {
+    "plugins": []
+  },
+  "metadata": {
+    "defaultSettings": {
+      "notifyPath": "noctalia",
+      "pollSeconds": 30,
+      "cliPath": "meetbarctl",
+      "horizonHours": 12,
+      "showIdle": true,
+      "idleText": "No meetings"
+    }
+  }
+}

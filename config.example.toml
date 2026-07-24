@@ -1,0 +1,35 @@
+# Example meetbar config.
+#
+# Copy to $XDG_CONFIG_HOME/meetbar/config.toml (usually
+# ~/.config/meetbar/config.toml) and edit as needed. Every key is
+# optional — anything you omit falls back to the default shown below.
+
+# Minutes before each meeting to fire an alert. 0 means "at start time".
+# Default: [15, 5, 0]
+warn_minutes = [15, 5, 0]
+
+# How often the daemon polls Google Calendar for changes.
+# Default: "2m"
+sync_interval = "2m"
+
+# How far ahead to sync events (also bounds `meetbarctl upcoming`).
+# Default: "24h"
+horizon = "24h"
+
+# Where notifications are delivered:
+#   noctalia — plugin fires Noctalia notifications (default)
+#   daemon   — daemon calls notify-send directly, no plugin required
+#   both     — both paths notify; daemon does not auto-ack so the
+#              plugin can still notify+ack independently
+notify_path = "noctalia"
+
+# Which calendars to sync when `calendars` (below) is not set:
+#   primary — only your main calendar (default)
+#   owned   — calendars you own or can write to
+#   all     — every calendar you're subscribed to (holidays, shared, etc.)
+calendar_filter = "primary"
+
+# Explicit calendar IDs to sync, overriding calendar_filter above.
+# Use ["*"] to mean "all calendars". Leave commented out to use
+# calendar_filter instead.
+# calendars = ["primary", "team@example.com"]

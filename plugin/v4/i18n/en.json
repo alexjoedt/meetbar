@@ -1,0 +1,50 @@
+{
+  "title": "Meetbar",
+  "bar": {
+    "offline": "…",
+    "disconnected": "Not connected"
+  },
+  "panel": {
+    "title": "Meetbar",
+    "offline": "Daemon offline",
+    "disconnected": "Not connected",
+    "connect": "Connect Google",
+    "disconnect": "Disconnect",
+    "refresh": "Refresh",
+    "join": "Join",
+    "no-meetings": "No upcoming meetings",
+    "no-meetings-hint": "Your calendar is clear. Enjoy the quiet.",
+    "connect-hint": "Link your Google account to see upcoming meetings.",
+    "upcoming": "1 upcoming",
+    "upcoming-plural": "{count} upcoming",
+    "settings": "Widget Settings"
+  },
+  "settings": {
+    "notify-path": "Notification path",
+    "notify-path-desc": "Where meeting reminders are shown",
+    "notify-noctalia": "Noctalia only",
+    "notify-daemon": "Desktop (daemon) only",
+    "notify-both": "Noctalia and desktop",
+    "poll-seconds": "Poll interval (seconds)",
+    "poll-seconds-desc": "How often the plugin queries the meetbar daemon",
+    "cli-path": "CLI path",
+    "cli-path-desc": "Path to the meetbarctl binary",
+    "horizon-hours": "Horizon (hours)",
+    "horizon-hours-desc": "How far ahead to load meetings",
+    "show-idle": "Show when free",
+    "show-idle-desc": "Show idle text in the bar when there is no upcoming meeting",
+    "idle-text": "Idle text",
+    "idle-text-desc": "Bar text when no meeting is upcoming"
+  },
+  "notify": {
+    "meeting": "Meeting",
+    "starting": "Starting now",
+    "in-one": "Starts in 1 minute",
+    "in-n": "Starts in {n} minutes",
+    "join": "Join meeting",
+    "connected": "Connected"
+  },
+  "toast": {
+    "title": "Meetbar"
+  }
+}
