@@ -183,6 +183,64 @@ func main() {
 			}
 			fmt.Printf("synced %d events (%s)\n", res.Events, when)
 		})
+	case "join":
+		noInteractive := false
+		for _, a := range args[1:] {
+			if a == "--no-interactive" {
+				noInteractive = true
+			}
+		}
+
+		res, err := ipc.CallDecode[ipc.UpcomingResult](client, "upcoming", ipc.UpcomingParams{Hours: 1})
+		if err != nil {
+			fatal(err)
+		}
+
+		var running []ipc.Event
+		for _, ev := range res.Events {
+			if ev.MinutesUntil != nil && *ev.MinutesUntil <= 0 {
+				running = append(running, ev)
+			}
+		}
+
+		if len(running) == 0 {
+			fmt.Fprintln(os.Stderr, "error: no meeting is currently running")
+			os.Exit(1)
+		}
+
+		var chosen ipc.Event
+		if len(running) == 1 {
+			chosen = running[0]
+		} else {
+			if noInteractive {
+				fmt.Fprintln(os.Stderr, "error: multiple meetings are running; use interactive mode to select")
+				os.Exit(1)
+			}
+			fmt.Fprintln(os.Stderr, "Multiple meetings are running. Pick one:")
+			for i, ev := range running {
+				start := ev.Start
+				if t, err := time.Parse(time.RFC3339, ev.Start); err == nil {
+					start = t.Local().Format("15:04")
+				}
+				fmt.Fprintf(os.Stderr, "  %d) %s  %s\n", i+1, start, ev.Title)
+			}
+			fmt.Fprintf(os.Stderr, "Choice [1-%d]: ", len(running))
+			var choice int
+			if _, err := fmt.Fscan(os.Stdin, &choice); err != nil || choice < 1 || choice > len(running) {
+				fmt.Fprintln(os.Stderr, "error: invalid choice")
+				os.Exit(1)
+			}
+			chosen = running[choice-1]
+		}
+
+		if chosen.JoinURL == "" {
+			fmt.Fprintln(os.Stderr, "error: no join URL for this meeting")
+			os.Exit(1)
+		}
+
+		if err := exec.Command("xdg-open", chosen.JoinURL).Start(); err != nil {
+			fatal(fmt.Errorf("xdg-open: %w", err))
+		}
 	default:
 		usage()
 		os.Exit(2)
@@ -244,5 +302,6 @@ Usage:
   meetbarctl alerts poll [--json]
   meetbarctl alerts ack <key>... [--json]
   meetbarctl calendars [--json]
+  meetbarctl join [--no-interactive]
 `)
 }
