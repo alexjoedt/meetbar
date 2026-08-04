@@ -1,0 +1,48 @@
+version: 2
+
+project_name: meetbar
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: meetbard
+    main: ./cmd/meetbard
+    binary: meetbard
+    env:
+      - CGO_ENABLED=0
+    goos: [linux]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+
+  - id: meetbarctl
+    main: ./cmd/meetbarctl
+    binary: meetbarctl
+    env:
+      - CGO_ENABLED=0
+    goos: [linux]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+
+archives:
+  - id: meetbard-archive
+    builds: [meetbard]
+    name_template: "meetbard_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+  - id: meetbarctl-archive
+    builds: [meetbarctl]
+    name_template: "meetbarctl_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
