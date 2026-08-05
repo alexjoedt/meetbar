@@ -38,14 +38,21 @@ func (s *Store) SetWarnMinutes(mins []int) {
 	s.mu.Unlock()
 }
 
+type eventWinner struct {
+	alert        ipc.Alert
+	thresholdMin int
+}
+
 func (s *Store) Evaluate(now time.Time, events []ipc.Event) []ipc.Alert {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	activeIDs := map[string]bool{}
-	var due []ipc.Alert
 	silentlyAcked := false
 
+	// Pass 1: per-event collapse — pick the most-urgent overdue threshold for
+	// each event, silently acking the rest (handles suspend/missed ticks).
+	var winners []eventWinner
 	for _, ev := range events {
 		if ev.AllDay {
 			continue
@@ -79,7 +86,6 @@ func (s *Store) Evaluate(now time.Time, events []ipc.Event) []ipc.Alert {
 				continue
 			}
 			thresholdAt := start.Add(-time.Duration(mins) * time.Minute)
-			// Fire once the threshold time has passed and the meeting has not ended.
 			if now.Before(thresholdAt) {
 				continue
 			}
@@ -105,22 +111,45 @@ func (s *Store) Evaluate(now time.Time, events []ipc.Event) []ipc.Alert {
 				silentlyAcked = true
 				continue
 			}
-			due = append(due, ipc.Alert{
-				Key:          key,
-				EventID:      ev.ID,
-				ThresholdMin: mins,
-				Title:        ev.Title,
-				Start:        ev.Start,
-				JoinURL:      ev.JoinURL,
+			winners = append(winners, eventWinner{
+				alert: ipc.Alert{
+					Key:          key,
+					EventID:      ev.ID,
+					ThresholdMin: mins,
+					Title:        ev.Title,
+					Start:        ev.Start,
+					JoinURL:      ev.JoinURL,
+				},
+				thresholdMin: mins,
 			})
 		}
+	}
+
+	// Pass 2: cross-event suppression — if any meeting is starting now
+	// (threshold == 0), suppress reminder notifications for upcoming meetings
+	// so the "Starting now" alert isn't buried under future-meeting noise.
+	hasStarting := false
+	for _, w := range winners {
+		if w.thresholdMin == 0 {
+			hasStarting = true
+			break
+		}
+	}
+
+	var due []ipc.Alert
+	for _, w := range winners {
+		if hasStarting && w.thresholdMin > 0 {
+			s.acked[w.alert.Key] = now
+			silentlyAcked = true
+			continue
+		}
+		due = append(due, w.alert)
 	}
 
 	// Drop acks for events no longer relevant.
 	for key := range s.acked {
 		eventID, _, _ := strings.Cut(key, ":")
 		if !activeIDs[eventID] {
-			// keep acks briefly; prune if event ended long ago is handled by not being in cache
 			delete(s.acked, key)
 		}
 	}

@@ -110,6 +110,85 @@ func TestEvaluateSkipsAllDay(t *testing.T) {
 	}
 }
 
+func TestEvaluateCrossEventSuppression(t *testing.T) {
+	base := time.Date(2024, 1, 15, 9, 0, 0, 0, time.UTC)
+
+	mkEvent := func(id, title string, start time.Time) ipc.Event {
+		return ipc.Event{
+			ID:    id,
+			Title: title,
+			Start: start.Format(time.RFC3339),
+			End:   start.Add(30 * time.Minute).Format(time.RFC3339),
+		}
+	}
+
+	tests := []struct {
+		name     string
+		events   []ipc.Event
+		now      time.Time
+		wantKeys []string
+	}{
+		{
+			name: "starting now suppresses upcoming reminder",
+			events: []ipc.Event{
+				mkEvent("a", "Standup", base),         // starts at 9:00
+				mkEvent("b", "Retro", base.Add(15*time.Minute)), // starts at 9:15
+			},
+			now:      base,
+			wantKeys: []string{"a:0"},
+		},
+		{
+			name: "no conflict: only upcoming reminder fires",
+			events: []ipc.Event{
+				mkEvent("b", "Retro", base.Add(15*time.Minute)),
+			},
+			now:      base,
+			wantKeys: []string{"b:15"},
+		},
+		{
+			name: "two simultaneous starts both fire",
+			events: []ipc.Event{
+				mkEvent("a", "Standup", base),
+				mkEvent("b", "Retro", base),
+			},
+			now:      base,
+			wantKeys: []string{"a:0", "b:0"},
+		},
+		{
+			name: "a ended, upcoming reminder fires normally",
+			events: []ipc.Event{
+				// a started at 8:50 and ends at 9:20, but its :0 is already acked
+				mkEvent("b", "Retro", base.Add(5*time.Minute)),
+			},
+			now:      base,
+			wantKeys: []string{"b:5"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			store, err := NewStore(filepath.Join(dir, "alerts.json"), []int{15, 5, 1, 0})
+			if err != nil {
+				t.Fatal(err)
+			}
+			due := store.Evaluate(tc.now, tc.events)
+			if len(due) != len(tc.wantKeys) {
+				t.Fatalf("want %d alerts %v, got %d: %#v", len(tc.wantKeys), tc.wantKeys, len(due), due)
+			}
+			gotKeys := map[string]bool{}
+			for _, a := range due {
+				gotKeys[a.Key] = true
+			}
+			for _, k := range tc.wantKeys {
+				if !gotKeys[k] {
+					t.Errorf("want key %q in due, got %v", k, due)
+				}
+			}
+		})
+	}
+}
+
 func TestAckPruningForInactiveEvents(t *testing.T) {
 	dir := t.TempDir()
 	store, err := NewStore(filepath.Join(dir, "alerts.json"), []int{0})
