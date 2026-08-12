@@ -11,7 +11,7 @@ Guidelines for AI coding agents working in this repository.
 | Piece | Role |
 | --- | --- |
 | `meetbard` | Long-running daemon: OAuth, Calendar sync, alert thresholds, UDS IPC |
-| `meetbarctl` | Control CLI: status, login, upcoming, sync, alerts, calendars; also `serve` for foreground daemon |
+| `meetbarctl` | Control CLI: status, login, upcoming, today, sync, alerts, calendars; also `serve` for foreground daemon |
 | `plugin/v4` | Noctalia v3/v4 bar widget + panel (QML + `manifest.json`) |
 | `plugin/v5` | Noctalia v5 bar widget + panel (Luau + `plugin.toml`) |
 

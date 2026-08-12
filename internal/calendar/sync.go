@@ -97,6 +97,43 @@ func (s *Syncer) Upcoming(hours int) []ipc.Event {
 	return out
 }
 
+// Today returns every timed event starting on the current local day, earliest
+// first, including ones that have already finished. All-day events are skipped,
+// matching Upcoming.
+func (s *Syncer) Today() []ipc.Event {
+	return s.todayAt(time.Now())
+}
+
+// todayAt is the testable core of Today; tests pin now instead of the wall clock.
+func (s *Syncer) todayAt(now time.Time) []ipc.Event {
+	dayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	dayEnd := dayStart.AddDate(0, 0, 1) // AddDate, not +24h, so DST shifts stay correct
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	var out []ipc.Event
+	for _, ev := range s.events {
+		if ev.AllDay {
+			continue
+		}
+		start, err := time.Parse(time.RFC3339, ev.Start)
+		if err != nil {
+			continue
+		}
+		// Compare locally so an event carrying a different UTC offset still
+		// lands on the day the user actually sees it on.
+		start = start.Local()
+		if start.Before(dayStart) || !start.Before(dayEnd) {
+			continue
+		}
+		cp := ev
+		mins := int(start.Sub(now).Minutes())
+		cp.MinutesUntil = &mins
+		out = append(out, cp)
+	}
+	return out
+}
+
 func (s *Syncer) Refresh(ctx context.Context) error {
 	client, err := s.newClient(ctx)
 	if err != nil {
@@ -115,7 +152,15 @@ func (s *Syncer) Refresh(ctx context.Context) error {
 	s.mu.RUnlock()
 
 	now := time.Now()
-	timeMin := now.Add(-15 * time.Minute).Format(time.RFC3339)
+	dayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	// Fetch from the start of the local day so `today` can also show meetings that
+	// already finished. Keep the 15-minute grace window for the small hours, when it
+	// reaches further back than midnight does.
+	from := dayStart
+	if grace := now.Add(-15 * time.Minute); grace.Before(from) {
+		from = grace
+	}
+	timeMin := from.Format(time.RFC3339)
 	timeMax := now.Add(horizon).Format(time.RFC3339)
 
 	calIDs, err := listCalendarIDs(ctx, svc, filter)

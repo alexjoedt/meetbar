@@ -43,6 +43,10 @@ type UpcomingResult struct {
 	Events []Event `json:"events"`
 }
 
+// TodayResult mirrors UpcomingResult: today returns the same event shape, scoped
+// to the current local day.
+type TodayResult = UpcomingResult
+
 type Alert struct {
 	Key          string `json:"key"`
 	EventID      string `json:"event_id"`
