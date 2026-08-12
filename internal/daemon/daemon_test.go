@@ -71,6 +71,12 @@ func (f *fakeSyncer) Upcoming(hours int) []ipc.Event {
 	return append([]ipc.Event(nil), f.events...)
 }
 
+func (f *fakeSyncer) Today() []ipc.Event {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]ipc.Event(nil), f.events...)
+}
+
 func (f *fakeSyncer) ListCalendars(ctx context.Context) ([]ipc.CalendarInfo, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -134,6 +140,22 @@ func TestHandleDispatch(t *testing.T) {
 					t.Fatal(err)
 				}
 				res := result.(ipc.UpcomingResult)
+				if len(res.Events) != 1 || res.Events[0].ID != "e1" {
+					t.Fatalf("unexpected events: %#v", res.Events)
+				}
+			},
+		},
+		{
+			name:   "today returns synced events",
+			method: "today",
+			setup: func(fs *fakeSyncer) {
+				fs.events = []ipc.Event{{ID: "e1", Title: "Standup", Start: time.Now().Format(time.RFC3339)}}
+			},
+			check: func(t *testing.T, result any, err error) {
+				if err != nil {
+					t.Fatal(err)
+				}
+				res := result.(ipc.TodayResult)
 				if len(res.Events) != 1 || res.Events[0].ID != "e1" {
 					t.Fatalf("unexpected events: %#v", res.Events)
 				}

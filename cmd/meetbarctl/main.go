@@ -120,6 +120,21 @@ func main() {
 				fmt.Println(line)
 			}
 		})
+	case "today":
+		res, err := ipc.CallDecode[ipc.TodayResult](client, "today", nil)
+		if err != nil {
+			fatal(err)
+		}
+		printResult(jsonOut, res, func() {
+			if len(res.Events) == 0 {
+				fmt.Println("no meetings today")
+				return
+			}
+			now := time.Now()
+			for _, ev := range res.Events {
+				fmt.Println(formatTodayLine(now, ev))
+			}
+		})
 	case "alerts":
 		if len(args) < 2 {
 			fatal(fmt.Errorf("usage: meetbarctl alerts poll|ack"))
@@ -247,6 +262,32 @@ func main() {
 	}
 }
 
+// formatTodayLine renders one line of `meetbarctl today`, tagging whatever has
+// already finished or is currently running.
+func formatTodayLine(now time.Time, ev ipc.Event) string {
+	span := ev.Start
+	start, startErr := time.Parse(time.RFC3339, ev.Start)
+	end, endErr := time.Parse(time.RFC3339, ev.End)
+	if startErr == nil {
+		span = start.Local().Format("15:04")
+		if endErr == nil {
+			span += "–" + end.Local().Format("15:04")
+		}
+	}
+	tag := ""
+	switch {
+	case endErr == nil && !end.After(now):
+		tag = "  (done)"
+	case startErr == nil && !start.After(now):
+		tag = "  (now)"
+	}
+	line := fmt.Sprintf("%s  %s%s", span, ev.Title, tag)
+	if ev.JoinURL != "" {
+		line += "  " + ev.JoinURL
+	}
+	return line
+}
+
 func runServe() {
 	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -298,6 +339,7 @@ Usage:
   meetbarctl login [--json]
   meetbarctl logout [--json]
   meetbarctl upcoming [--hours N] [--json]
+  meetbarctl today [--json]
   meetbarctl sync [--json]
   meetbarctl alerts poll [--json]
   meetbarctl alerts ack <key>... [--json]

@@ -31,6 +31,7 @@ type eventSyncer interface {
 	Refresh(ctx context.Context) error
 	Snapshot() (events []ipc.Event, lastSync time.Time, lastErr string)
 	Upcoming(hours int) []ipc.Event
+	Today() []ipc.Event
 	ListCalendars(ctx context.Context) ([]ipc.CalendarInfo, error)
 }
 
@@ -198,6 +199,18 @@ func (a *App) evaluateAlerts(ctx context.Context) {
 	}
 }
 
+// refreshIfStale pulls from Google when the cached snapshot is missing or older
+// than one sync interval, so on-demand queries do not serve stale events.
+func (a *App) refreshIfStale(ctx context.Context, syncer eventSyncer, authMgr authManager) {
+	_, last, _ := syncer.Snapshot()
+	if !last.IsZero() && time.Since(last) <= a.cfg.SyncInterval {
+		return
+	}
+	if st, _ := authMgr.Status(); st == "connected" {
+		_ = syncer.Refresh(ctx)
+	}
+}
+
 func (a *App) handle(ctx context.Context, method string, params json.RawMessage) (any, error) {
 	switch method {
 	case "status":
@@ -219,16 +232,14 @@ func (a *App) handle(ctx context.Context, method string, params json.RawMessage)
 		}
 		// Grab stable references for the duration of this request so a
 		// concurrent login (which swaps both) can't interleave weirdly.
-		syncer := a.getSyncer()
-		authMgr := a.getAuth()
-		// refresh if empty or stale
-		_, last, _ := syncer.Snapshot()
-		if last.IsZero() || time.Since(last) > a.cfg.SyncInterval {
-			if st, _ := authMgr.Status(); st == "connected" {
-				_ = syncer.Refresh(ctx)
-			}
-		}
+		syncer, authMgr := a.getSyncer(), a.getAuth()
+		a.refreshIfStale(ctx, syncer, authMgr)
 		return ipc.UpcomingResult{Events: syncer.Upcoming(p.Hours)}, nil
+	case "today":
+		// Stable references for the duration of the request, as in upcoming.
+		syncer, authMgr := a.getSyncer(), a.getAuth()
+		a.refreshIfStale(ctx, syncer, authMgr)
+		return ipc.TodayResult{Events: syncer.Today()}, nil
 	case "alerts.poll":
 		events, _, _ := a.getSyncer().Snapshot()
 		a.alerts.Evaluate(time.Now(), events)

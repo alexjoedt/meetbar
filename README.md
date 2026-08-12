@@ -3,7 +3,7 @@
 Google Calendar meeting reminders for [Noctalia](https://noctalia.dev) shell, backed by a small Go daemon.
 
 - **Daemon** (`meetbard`) OAuth, Calendar API sync, alert thresholds, Unix socket IPC  
-- **CLI** (`meetbarctl`) status, login, upcoming, sync, alerts  
+- **CLI** (`meetbarctl`) status, login, upcoming, today, sync, alerts  
 - **Plugin** bar countdown, agenda panel, Noctalia notifications  
 
 ## Install (daemon + CLI)
@@ -95,6 +95,7 @@ meetbarctl serve                 # foreground daemon
 meetbarctl status [--json]
 meetbarctl login | logout
 meetbarctl upcoming [--hours 12]
+meetbarctl today                     # today's meetings, including finished ones
 meetbarctl sync                      # force Google Calendar pull
 meetbarctl alerts poll | ack <key>...
 meetbarctl calendars
