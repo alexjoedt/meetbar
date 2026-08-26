@@ -29,6 +29,7 @@
       "cliPath": "meetbarctl",
       "horizonHours": 12,
       "showIdle": true,
+      "overlayAlert": true,
       "idleText": "No meetings"
     }
   }

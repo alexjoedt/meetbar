@@ -34,7 +34,9 @@
     "show-idle": "Show when free",
     "show-idle-desc": "Show idle text in the bar when there is no upcoming meeting",
     "idle-text": "Idle text",
-    "idle-text-desc": "Bar text when no meeting is upcoming"
+    "idle-text-desc": "Bar text when no meeting is upcoming",
+    "overlay-alert": "Fullscreen alert when a meeting starts",
+    "overlay-alert-desc": "Show a centered overlay instead of a toast for meetings starting now"
   },
   "notify": {
     "meeting": "Meeting",
@@ -43,6 +45,9 @@
     "in-n": "Starts in {n} minutes",
     "join": "Join meeting",
     "connected": "Connected"
+  },
+  "overlay": {
+    "dismiss": "Dismiss"
   },
   "toast": {
     "title": "Meetbar"
