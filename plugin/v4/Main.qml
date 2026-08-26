@@ -37,6 +37,7 @@ Item {
   readonly property int horizonHours: Math.max(1, cfg.horizonHours ?? defaults.horizonHours ?? 12)
   readonly property bool showIdle: cfg.showIdle ?? defaults.showIdle ?? true
   readonly property string idleText: cfg.idleText ?? defaults.idleText ?? "No meetings"
+  readonly property bool overlayAlert: cfg.overlayAlert ?? defaults.overlayAlert ?? true
 
   readonly property bool wantsNoctaliaNotify: notifyPath === "noctalia" || notifyPath === "both"
 
@@ -74,6 +75,29 @@ Item {
     onTriggered: {
       if (root.startCooldown > 0)
         root.startCooldown -= 1
+    }
+  }
+
+  Loader {
+    id: alertLoader
+    active: false
+
+    property var alertScreen: null
+    property var pending: null
+
+    sourceComponent: AlertOverlay {
+      screen: alertLoader.alertScreen
+      pluginApi: root.pluginApi
+      onJoinRequested: url => root.openJoin(url)
+      onClosed: alertLoader.active = false
+    }
+
+    onStatusChanged: {
+      if (status === Loader.Ready && pending) {
+        item.meetingTitle = pending.title
+        item.joinUrl = pending.joinUrl
+        pending = null
+      }
     }
   }
 
@@ -300,6 +324,26 @@ Item {
     Quickshell.execDetached(["xdg-open", url])
   }
 
+  function showStartingOverlay(title, joinUrl) {
+    if (alertLoader.active && alertLoader.item) {
+      alertLoader.item.meetingTitle = title
+      alertLoader.item.joinUrl = joinUrl
+      return
+    }
+    const open = function (screen) {
+      alertLoader.alertScreen = screen || Quickshell.screens[0]
+      alertLoader.pending = {
+        "title": title,
+        "joinUrl": joinUrl
+      }
+      alertLoader.active = true
+    }
+    if (pluginApi?.withCurrentScreen)
+      pluginApi.withCurrentScreen(open)
+    else
+      open(Quickshell.screens[0])
+  }
+
   function formatNotify(threshold, title) {
     const meeting = (title && title.length > 0) ? title : (pluginApi?.tr("notify.meeting") || "Meeting")
     let urgency
@@ -343,7 +387,10 @@ Item {
                 })(joinUrl)
               : null
         const duration = msg.imminent ? 15000 : 12000
-        if (msg.imminent) {
+        const isNow = a.threshold_min === undefined || a.threshold_min === null || a.threshold_min <= 0
+        if (isNow && overlayAlert) {
+          showStartingOverlay(msg.title, joinUrl)
+        } else if (msg.imminent) {
           ToastService.showWarning(msg.title, msg.body, duration, actionLabel, actionCb)
         } else {
           ToastService.showNotice(msg.title, msg.body, "video", duration, actionLabel, actionCb)

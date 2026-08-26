@@ -16,6 +16,7 @@ ColumnLayout {
   property string cliPath: cfg.cliPath ?? defaults.cliPath ?? "meetbarctl"
   property int horizonHours: cfg.horizonHours ?? defaults.horizonHours ?? 12
   property bool showIdle: cfg.showIdle ?? defaults.showIdle ?? true
+  property bool overlayAlert: cfg.overlayAlert ?? defaults.overlayAlert ?? true
   property string idleText: cfg.idleText ?? defaults.idleText ?? "No meetings"
 
   spacing: Style.marginL
@@ -38,6 +39,7 @@ ColumnLayout {
     root.cliPath = settings?.cliPath ?? defs?.cliPath ?? "meetbarctl"
     root.horizonHours = settings?.horizonHours ?? defs?.horizonHours ?? 12
     root.showIdle = settings?.showIdle ?? defs?.showIdle ?? true
+    root.overlayAlert = settings?.overlayAlert ?? defs?.overlayAlert ?? true
     root.idleText = settings?.idleText ?? defs?.idleText ?? "No meetings"
   }
 
@@ -118,6 +120,13 @@ ColumnLayout {
       onToggled: checked => root.showIdle = checked
     }
 
+    NToggle {
+      label: pluginApi?.tr("settings.overlay-alert") || "Fullscreen alert when a meeting starts"
+      description: pluginApi?.tr("settings.overlay-alert-desc") || "Show a centered overlay instead of a toast for meetings starting now"
+      checked: root.overlayAlert
+      onToggled: checked => root.overlayAlert = checked
+    }
+
     NTextInput {
       Layout.fillWidth: true
       label: pluginApi?.tr("settings.idle-text") || "Idle text"
@@ -138,6 +147,7 @@ ColumnLayout {
     pluginApi.pluginSettings.cliPath = root.cliPath
     pluginApi.pluginSettings.horizonHours = root.horizonHours
     pluginApi.pluginSettings.showIdle = root.showIdle
+    pluginApi.pluginSettings.overlayAlert = root.overlayAlert
     pluginApi.pluginSettings.idleText = root.idleText
     pluginApi.saveSettings()
 
