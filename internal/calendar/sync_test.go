@@ -98,6 +98,13 @@ func TestTodayAt(t *testing.T) {
 			End:        dayStart.Add(26 * time.Hour).Format(time.RFC3339),
 			CalendarID: "primary",
 		},
+		{
+			ID:         "overnight",
+			Title:      "On-call handoff",
+			Start:      dayStart.Add(-1 * time.Hour).Format(time.RFC3339),
+			End:        dayStart.Add(1 * time.Hour).Format(time.RFC3339),
+			CalendarID: "primary",
+		},
 	}
 
 	s := NewSyncer(nil, 24*time.Hour, Filter{})
@@ -105,7 +112,7 @@ func TestTodayAt(t *testing.T) {
 
 	got := s.todayAt(now)
 
-	wantIDs := []string{"finished", "running", "later"}
+	wantIDs := []string{"finished", "running", "later", "overnight"}
 	if len(got) != len(wantIDs) {
 		t.Fatalf("expected %d events, got %#v", len(wantIDs), got)
 	}
