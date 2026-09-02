@@ -138,6 +138,17 @@ func TestTodayAt(t *testing.T) {
 	}
 }
 
+func TestSortEventsAcrossOffsets(t *testing.T) {
+	events := []ipc.Event{
+		{ID: "earlier-but-utc", Start: "2026-08-12T08:30:00Z"},
+		{ID: "later-but-plus2", Start: "2026-08-12T09:00:00+02:00"}, // 07:00 UTC, actually first
+	}
+	sortEvents(events)
+	if events[0].ID != "later-but-plus2" || events[1].ID != "earlier-but-utc" {
+		t.Fatalf("expected sort by instant, got %#v", events)
+	}
+}
+
 func TestFetchEventsFollowsNextPageToken(t *testing.T) {
 	var pageTokensSeen []string
 	mux := http.NewServeMux()

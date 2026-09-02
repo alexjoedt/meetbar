@@ -374,6 +374,11 @@ func parseTimes(item *gcal.Event) (start, end time.Time, allDay bool, ok bool) {
 
 func sortEvents(events []ipc.Event) {
 	sort.Slice(events, func(i, j int) bool {
-		return events[i].Start < events[j].Start
+		ti, erri := time.Parse(time.RFC3339, events[i].Start)
+		tj, errj := time.Parse(time.RFC3339, events[j].Start)
+		if erri != nil || errj != nil {
+			return events[i].Start < events[j].Start
+		}
+		return ti.Before(tj)
 	})
 }
