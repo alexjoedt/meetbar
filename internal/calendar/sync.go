@@ -120,10 +120,11 @@ func (s *Syncer) todayAt(now time.Time) []ipc.Event {
 		if err != nil {
 			continue
 		}
-		// Compare locally so an event carrying a different UTC offset still
-		// lands on the day the user actually sees it on.
-		start = start.Local()
-		if start.Before(dayStart) || !start.Before(dayEnd) {
+		end, err := time.Parse(time.RFC3339, ev.End)
+		if err != nil {
+			end = start
+		}
+		if !end.After(dayStart) || !start.Before(dayEnd) {
 			continue
 		}
 		cp := ev
