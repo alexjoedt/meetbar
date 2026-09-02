@@ -1,10 +1,16 @@
 package calendar
 
 import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/alex/meetbar/internal/ipc"
+	gcal "google.golang.org/api/calendar/v3"
+	"google.golang.org/api/option"
 )
 
 func TestUpcomingExcludesAllDay(t *testing.T) {
@@ -129,5 +135,52 @@ func TestTodayAt(t *testing.T) {
 	}
 	if *got[0].MinutesUntil >= 0 {
 		t.Fatalf("expected negative minutes_until for finished event, got %d", *got[0].MinutesUntil)
+	}
+}
+
+func TestFetchEventsFollowsNextPageToken(t *testing.T) {
+	var pageTokensSeen []string
+	mux := http.NewServeMux()
+	mux.HandleFunc("/calendars/primary/events", func(w http.ResponseWriter, r *http.Request) {
+		pageToken := r.URL.Query().Get("pageToken")
+		pageTokensSeen = append(pageTokensSeen, pageToken)
+		w.Header().Set("Content-Type", "application/json")
+		if pageToken == "" {
+			_ = json.NewEncoder(w).Encode(&gcal.Events{
+				Items: []*gcal.Event{
+					{Id: "e1", Summary: "First", Start: &gcal.EventDateTime{DateTime: "2026-08-12T09:00:00Z"}, End: &gcal.EventDateTime{DateTime: "2026-08-12T09:30:00Z"}},
+				},
+				NextPageToken: "page2",
+			})
+			return
+		}
+		_ = json.NewEncoder(w).Encode(&gcal.Events{
+			Items: []*gcal.Event{
+				{Id: "e2", Summary: "Second", Start: &gcal.EventDateTime{DateTime: "2026-08-12T10:00:00Z"}, End: &gcal.EventDateTime{DateTime: "2026-08-12T10:30:00Z"}},
+			},
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	ctx := context.Background()
+	svc, err := gcal.NewService(ctx,
+		option.WithHTTPClient(srv.Client()),
+		option.WithEndpoint(srv.URL),
+		option.WithoutAuthentication(),
+	)
+	if err != nil {
+		t.Fatalf("NewService: %v", err)
+	}
+
+	events, err := fetchEvents(ctx, svc, []string{"primary"}, "2026-08-12T00:00:00Z", "2026-08-12T23:59:59Z")
+	if err != nil {
+		t.Fatalf("fetchEvents: %v", err)
+	}
+	if len(pageTokensSeen) != 2 {
+		t.Fatalf("expected 2 page requests, got %d: %#v", len(pageTokensSeen), pageTokensSeen)
+	}
+	if len(events) != 2 || events[0].ID != "e1" || events[1].ID != "e2" {
+		t.Fatalf("expected events from both pages, got %#v", events)
 	}
 }
