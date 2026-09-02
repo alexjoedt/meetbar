@@ -170,33 +170,10 @@ func (s *Syncer) Refresh(ctx context.Context) error {
 		return err
 	}
 
-	var events []ipc.Event
-	for _, calID := range calIDs {
-		call := svc.Events.List(calID).
-			Context(ctx).
-			SingleEvents(true).
-			OrderBy("startTime").
-			TimeMin(timeMin).
-			TimeMax(timeMax).
-			ShowDeleted(false).
-			MaxResults(100)
-		resp, err := call.Do()
-		if err != nil {
-			s.setErr(err)
-			return fmt.Errorf("events %s: %w — if this is a scope error, run: meetbarctl logout && meetbarctl login", calID, err)
-		}
-		for _, item := range resp.Items {
-			if item == nil || item.Status == "cancelled" {
-				continue
-			}
-			if declinedBySelf(item) {
-				continue
-			}
-			ev, ok := mapEvent(calID, item)
-			if ok {
-				events = append(events, ev)
-			}
-		}
+	events, err := fetchEvents(ctx, svc, calIDs, timeMin, timeMax)
+	if err != nil {
+		s.setErr(err)
+		return err
 	}
 
 	sortEvents(events)
@@ -207,6 +184,49 @@ func (s *Syncer) Refresh(ctx context.Context) error {
 	s.lastErr = ""
 	s.mu.Unlock()
 	return nil
+}
+
+// fetchEvents is the testable core of Refresh's fetch step: it walks every
+// calendar in calIDs, following NextPageToken so a calendar with more than
+// one page of events in [timeMin, timeMax) isn't silently truncated.
+func fetchEvents(ctx context.Context, svc *gcal.Service, calIDs []string, timeMin, timeMax string) ([]ipc.Event, error) {
+	var events []ipc.Event
+	for _, calID := range calIDs {
+		pageToken := ""
+		for {
+			call := svc.Events.List(calID).
+				Context(ctx).
+				SingleEvents(true).
+				OrderBy("startTime").
+				TimeMin(timeMin).
+				TimeMax(timeMax).
+				ShowDeleted(false).
+				MaxResults(100)
+			if pageToken != "" {
+				call = call.PageToken(pageToken)
+			}
+			resp, err := call.Do()
+			if err != nil {
+				return nil, fmt.Errorf("events %s: %w — if this is a scope error, run: meetbarctl logout && meetbarctl login", calID, err)
+			}
+			for _, item := range resp.Items {
+				if item == nil || item.Status == "cancelled" {
+					continue
+				}
+				if declinedBySelf(item) {
+					continue
+				}
+				if ev, ok := mapEvent(calID, item); ok {
+					events = append(events, ev)
+				}
+			}
+			if resp.NextPageToken == "" {
+				break
+			}
+			pageToken = resp.NextPageToken
+		}
+	}
+	return events, nil
 }
 
 func (s *Syncer) ListCalendars(ctx context.Context) ([]ipc.CalendarInfo, error) {
