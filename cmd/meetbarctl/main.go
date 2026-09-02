@@ -274,6 +274,11 @@ func formatTodayLine(now time.Time, ev ipc.Event) string {
 			span += "–" + end.Local().Format("15:04")
 		}
 	}
+	if endErr != nil {
+		// No parseable end: fall back to the start, same as Upcoming does, so the
+		// event still eventually reads "(done)" instead of staying "(now)" forever.
+		end, endErr = start, startErr
+	}
 	tag := ""
 	switch {
 	case endErr == nil && !end.After(now):
